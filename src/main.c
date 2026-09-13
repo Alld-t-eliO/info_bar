@@ -11,4 +11,10 @@ int main(void)
     printf("Mem: %llu bytes\n", gpu.memory);
 
     return 0;
+
+    RAMInfo ram = get_ram_info();
+    printf("Ram: %llu bytes\n", ram.memory);
+
+    CPUInfo cpu = get_cpu_info();
+    printf("CPU: %s\n", cpu.name);
 }
