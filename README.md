@@ -38,26 +38,50 @@ ram.c/h          RAM usage via Mach host_statistics64 + sysctl
 gpu.h/m          GPU info via Metal (MTLDevice)
 iokit_gpu.c/h    IOKit exploration of GPU services (dev/debug tool)
 test_ioreport.c  Experiment with the IOReport API (dev/debug tool)
+Info.plist       App bundle metadata (used by build.sh)
+build.sh         Builds and packages MonitorBar.app
 ```
 
-## Building
+## Installation
+
+### Option 1 — Download the app (recommended for most users)
+
+1. Go to the [Releases](../../releases) page and download the latest `MonitorBar.app.zip`.
+2. Unzip it and drag `MonitorBar.app` into `/Applications`.
+3. **First launch**: macOS will block the app because it isn't signed by a
+   registered Apple Developer account. Right-click (or Control-click)
+   `MonitorBar.app` → **Open** → **Open** again in the dialog. You only need
+   to do this once.
+4. The bar appears floating on your screen. Right-click it any time to
+   change its color, toggle the background, or quit.
+
+### Option 2 — Build from source
 
 Requirements:
 * macOS
 * Xcode Command Line Tools (`xcode-select --install`)
 
-Build the overlay app from source:
+Clone the repo, then run the build script from the project root:
+
+```bash
+./build.sh
+```
+
+This compiles everything and assembles a real `.app` bundle at
+`build/MonitorBar.app`. Launch it with:
+
+```bash
+open build/MonitorBar.app
+```
+
+Alternatively, to build a plain command-line binary without an app bundle:
 
 ```bash
 clang -fobjc-arc -o MonitorBar \
     main.m AppDelegate.m OverlayView.m \
     cpu.c ram.c gpu.m \
     -framework Cocoa -framework Metal -framework Foundation
-```
 
-Then run it:
-
-```bash
 ./MonitorBar
 ```
 
