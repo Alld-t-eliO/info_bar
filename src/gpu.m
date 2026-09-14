@@ -11,12 +11,14 @@ GPUInfo get_gpu_info(void)
     {
         info.name = "Unknown";
         info.memory = 0;
+        info.usedMemory = 0;
 
         return info;
     }
 
     info.name = device.name.UTF8String;
     info.memory = device.recommendedMaxWorkingSetSize;
+    info.usedMemory = device.currentAllocatedSize;
 
     return info;
 }
