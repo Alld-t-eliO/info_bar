@@ -1,100 +1,65 @@
-# System Monitor
+# MonitorBar
 
-A lightweight real-time system monitor overlay for macOS, written in **C and Objective-C**.
+Petit moniteur flottant personnalisable pour macOS, écrit en C et Objective-C avec Cocoa, Mach et Metal.
 
-This project is mainly a personal learning project. The goal is to learn C, macOS system APIs, hardware monitoring, graphical interfaces, and software architecture while building a small and useful desktop tool.
+## Compilation
 
-## Features
+Prérequis : macOS et les Xcode Command Line Tools (`xcode-select --install`). Depuis la racine :
 
-* CPU usage (%), computed from live Mach host statistics
-* RAM usage (%), computed from live VM statistics
-* GPU VRAM usage (%), via Metal (`currentAllocatedSize` / `recommendedMaxWorkingSetSize`)
-* Real-time stats, refreshed every second
-* Floating overlay window with transparent background
-* Movable window — just click and drag the bar anywhere on screen
-* Custom text color, chosen via the native macOS color picker
-* Optional semi-transparent background pill for readability
-* Persistent configuration — window position and color are restored on relaunch
-
-### Planned
-
-* True GPU compute utilization (currently only VRAM usage is available; real utilization would require parsing the private `IOReport` API)
-* Dynamic window resizing based on content
-* Dedicated preferences window (currently right-click menu)
-* Launch at login
-
-## Platform
-
-**macOS only.** The project intentionally relies on macOS-specific frameworks (Metal, IOKit, Mach) and Apple hardware. Cross-platform support is not a current goal.
-
-## Project structure
-
-```
-main.m           App entry point (Cocoa)
-AppDelegate.h/m  Window setup, refresh timer, context menu (color, background, quit)
-OverlayView.h/m  Custom transparent view that draws the stats text
-cpu.c/h          CPU usage via Mach host_statistics
-ram.c/h          RAM usage via Mach host_statistics64 + sysctl
-gpu.h/m          GPU info via Metal (MTLDevice)
-iokit_gpu.c/h    IOKit exploration of GPU services (dev/debug tool)
-test_ioreport.c  Experiment with the IOReport API (dev/debug tool)
-Info.plist       App bundle metadata (used by build.sh)
-build.sh         Builds and packages MonitorBar.app
-```
-
-## Installation
-
-### Option 1 — Download the app (recommended for most users)
-
-1. Go to the [Releases](../../releases) page and download the latest `MonitorBar.app.zip`.
-2. Unzip it and drag `MonitorBar.app` into `/Applications`.
-3. **First launch**: macOS will block the app because it isn't signed by a
-   registered Apple Developer account. Right-click (or Control-click)
-   `MonitorBar.app` → **Open** → **Open** again in the dialog. You only need
-   to do this once.
-4. The bar appears floating on your screen. Right-click it any time to
-   change its color, toggle the background, or quit.
-
-### Option 2 — Build from source
-
-Requirements:
-* macOS
-* Xcode Command Line Tools (`xcode-select --install`)
-
-Clone the repo, then run the build script from the project root:
-
-```bash
+```sh
 ./build.sh
-```
-
-This compiles everything and assembles a real `.app` bundle at
-`build/MonitorBar.app`. Launch it with:
-
-```bash
 open build/MonitorBar.app
 ```
 
-Alternatively, to build a plain command-line binary without an app bundle:
+Le script compile et signe localement l’app. Cette signature ad hoc ne remplace pas une signature Developer ID pour la distribution.
 
-```bash
-clang -fobjc-arc -o MonitorBar \
-    main.m AppDelegate.m OverlayView.m \
-    cpu.c ram.c gpu.m \
-    -framework Cocoa -framework Metal -framework Foundation
+## Personnalisation
 
-./MonitorBar
+Faites un **clic droit sur la barre** pour ouvrir les réglages :
+
+- Couleur commune ou couleur individuelle dans **Indicateurs → CPU / RAM / Metal → Couleur…**.
+- Thèmes **Terminal**, **Discret** et **Néon**. Un thème remplace les couleurs et le fond ; chaque couleur reste modifiable ensuite.
+- Fond optionnel avec curseur d’opacité. Déplacer le curseur active le fond.
+- Couleurs selon la valeur : vert sous 60 %, orange à partir de 60 %, rouge à partir de 85 %. Choisir une couleur manuellement désactive cette option.
+- Libellés ou symboles : ⚙ CPU, ▤ RAM, ◇ Metal.
+- **Espacement des indicateurs** : curseur au clic droit pour resserrer ou écarter les indicateurs en disposition horizontale ou capsules ; réglage sauvegardé et bouton de retour à l’espacement normal.
+- Disposition horizontale, verticale ou capsules séparées dans une même fenêtre.
+- Indicateurs masquables, avec au moins un indicateur toujours visible. **Placer en premier / dernier** permet de choisir leur ordre.
+- Mini-courbe activable par indicateur, sur les 60 derniers échantillons (environ une minute hors veille).
+- Alignement aux bords de l’écran et verrouillage de la position et de la taille.
+
+**Déplacer** : glissez la barre. À moins de 20 points d’un bord intérieur, elle s’aligne avec une marge de 10 points si l’option est activée.
+
+**Redimensionner** : la zone invisible de 24 points au bord droit permet de régler la taille quand la barre est déverrouillée. Le curseur change au survol. Tirez ce bord pour agrandir ou réduire proportionnellement le texte, les marges et les courbes (60 % à 250 %). Les commandes **Agrandir la barre**, **Réduire la barre** et **Taille normale** sont également accessibles directement en haut du clic droit. Le verrouillage masque ces repères et bloque le déplacement et le redimensionnement à la souris.
+
+Les réglages et la position sont restaurés au prochain lancement. Les anciennes préférences de couleur, de taille et de fond sont reprises automatiquement. Les courbes repartent à zéro.
+
+## Mesures
+
+- **CPU** : proportion de ticks actifs entre deux relevés Mach.
+- **RAM** : estimation basée sur les pages actives, câblées et compressées ; elle peut différer du Moniteur d’activité.
+- **Metal** : `currentAllocatedSize / recommendedMaxWorkingSetSize` du périphérique Metal utilisé par **cette app**. Ce n’est ni la charge GPU ni la mémoire GPU totale du système. Une valeur proche de zéro est normale ici ; l’indicateur peut être masqué.
+- Une mesure indisponible est affichée par un tiret et crée une interruption dans la courbe.
+
+## Vérification
+
+```sh
+clang -fobjc-arc -Wall -Wextra -Isrc tests/OverlayTests.m src/OverlayView.m -framework Cocoa -o /tmp/monitorbar-overlay-tests
+/tmp/monitorbar-overlay-tests
 ```
 
-## Usage
+Vérification manuelle : essayer les trois dispositions et les thèmes, tirer la poignée aux deux limites, masquer/réordonner les indicateurs, afficher les courbes, verrouiller/déverrouiller, tester l’alignement sur plusieurs écrans et relancer pour vérifier la sauvegarde.
 
-* **Move the bar**: click and drag anywhere on it.
-* **Right-click** the bar for options:
-  * *Choose a color...* — pick any text color
-  * *Semi-transparent background* — toggle a dark pill behind the text
-  * *Quit*
+## Structure
 
-Position and color are saved automatically and restored the next time you launch the app.
+- `src/AppDelegate.m` : fenêtre, menu, préférences et rafraîchissement.
+- `src/OverlayView.m` : rendu, courbes, déplacement et redimensionnement.
+- `src/cpu.c`, `src/ram.c`, `src/gpu.m` : collecte des mesures.
+- `build.sh` : construction de `build/MonitorBar.app`.
+- `tests/OverlayTests.m` : dimensions des dispositions et historique.
 
-## Status
+Les autres fichiers C et scripts historiques sont conservés pour les expérimentations ; le script de référence est `build.sh` à la racine.
 
-Under active development. File layout, build process, and features may change without notice.
+## Commande terminal
+
+`monitorbar` lance l’app depuis n’importe quel dossier une fois le lanceur installé dans `~/.local/bin` (présent dans le PATH). Depuis la racine du projet, `./monitorbar` fonctionne aussi. Les flèches de redimensionnement sont masquées ; le bord droit reste actif.
